@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 import uvicorn
 from pydantic import BaseModel, ValidationError
 from typing import Dict, Any
@@ -99,6 +99,41 @@ async def search_item(category: str, subcategory: str, value: str):
         raise HTTPException(status_code=500, detail="An internal server error occurred")
     return json_response
 
+@app.post("/api/request")
+async def handle_request(request: Request):
+    """
+    Handles incoming POST requests with JSON data.
+    FastAPI automatically parses and validates the JSON based on the type hint.
+    Processes the data and returns a JSON response.
+    """
+    try:
+        # Parse the incoming JSON request
+        data = await request.json()
+        serial = data.get("serial")
+        quantity = data.get("quantity")
+        print(f"Received request data: {data}")  # Debugging line
+        if not serial or not quantity:
+            raise ValueError("Missing required fields: 'serial' and 'quantity'")
+        elif quantity < 0:
+            raise ValueError("Quantity must be a positive integer")
+        
+        searchIDResult = db.search_componet_by_serialID(serial)
+        if searchIDResult is None:
+            raise ValueError("Serial ID not found in the database")
+        elif searchIDResult[0][7] < quantity or searchIDResult[0][7] <= 0:
+            raise ValueError("Insufficient quantity in the database")
+        db.subtract_quantity(serial, quantity)  # Update the database with the new quantity
+        # update arduino drawer
+        return {"status": "ok"}
+    except ValidationError as e:
+        print(f"Validation error: {e}")
+        raise HTTPException(status_code=400, detail="Invalid input data")
+    except ValueError as e:
+        print(f"Value error: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+        raise HTTPException(status_code=500, detail="An internal server error occurred")
 
 # Check if the script is being run directly
 if __name__ == "__main__":

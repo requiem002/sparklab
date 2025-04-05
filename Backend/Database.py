@@ -5,6 +5,7 @@
 
 import sqlite3
 from sqlite3 import Error
+from pydantic import BaseModel, ValidationError
 import os
 import json
 
@@ -142,6 +143,14 @@ class Database:
         query = "SELECT DISTINCT sub_category FROM components WHERE category = ?"
         params = (category,)
         return self.search_all(query,params)
+    
+    def subtract_quantity(self, serialID, quantity):
+        """ subtract quantity from a component """
+        print(self.search_componet_by_serialID(serialID))
+        query = "UPDATE components SET quantity = quantity - ? WHERE serialID = ?"
+        params = (quantity, serialID)
+        self.execute_query(query, params)
+        print(self.search_componet_by_serialID(serialID))
 
     def isTableEmpty(self):
         """ check if the table is empty """
@@ -151,3 +160,12 @@ class Database:
         count = cursor.fetchone()[0]
         return count == 0
     
+    def add_component(self, name, serialID, category, sub_category, cabinet_ID, location, quantity, value):
+        """ add a component to the database """
+        if self.search_componet_by_serialID(serialID) is not None:
+            print(f"Component with serial ID {serialID} already exists.")
+            raise ValidationError(f"Component with serial ID {serialID} already exists.")
+            return
+        query = "INSERT INTO components (name, serialID, category, sub_category, cabinet_ID, location, quantity, value) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+        params = (name, serialID, category, sub_category, cabinet_ID, location, quantity, value)
+        self.execute_query(query, params)

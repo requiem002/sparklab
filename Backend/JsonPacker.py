@@ -54,7 +54,7 @@ def convert_catergory_to_json(db_response):
         components_list.append(component)
 
     json_output = {
-        "components": components_list
+        "categories": components_list
     }
 
     return json.dumps(json_output, indent=4)
@@ -80,7 +80,7 @@ def convert_subcategory_to_json(db_response):
         components_list.append(component)
 
     json_output = {
-        "components": components_list
+        "subcategories": components_list
     }
 
     return json.dumps(json_output, indent=4)
