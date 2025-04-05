@@ -1,2 +1,4 @@
 example.py
 __pycache__/mock_backend.cpython-312.pyc
+Backend/__pycache__/
+example.db
