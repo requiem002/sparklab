@@ -126,6 +126,12 @@ class Database:
         params = (serialID,)
         return self.search_all(query, params)
     
+    def search_component_by_category_subcategory_and_value(self, category, sub_category, value):
+        """ fetch all components by category, sub category and value """
+        query = "SELECT * FROM components WHERE category = ? AND sub_category = ? AND value = ?"
+        params = (category, sub_category, value)
+        return self.search_all(query, params)
+    
     def get_unique_categories(self):
         """ fetch all unique categories """
         query = "SELECT DISTINCT category FROM components"
