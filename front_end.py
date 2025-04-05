@@ -49,8 +49,14 @@ def dashboard_screen(user_id: str):
     category_dropdown = ui.select([], label='Select Category', on_change=lambda e: asyncio.create_task(update_subcategories(e)))
     category_dropdown.classes('mb-2')
     
-    subcategory_dropdown = ui.select([], label='Select Subcategory')
+    subcategory_dropdown = ui.select([], label='Select Subcategory', on_change=lambda e: asyncio.create_task(update_components(e)))
     subcategory_dropdown.classes('mb-2')
+
+    component_dropdown = ui.select([], label='Select Component', on_change= lambda e: show_component_info(e))
+    component_dropdown.classes('mb-2')
+
+    
+        
     
     
 
@@ -95,33 +101,67 @@ def dashboard_screen(user_id: str):
         except Exception as e:
             print("Error fetching categories:", e)
             ui.notify("❌ Backend connection error")
+
     ui.timer(0.1, fetch_categories, once=True)
+    component_info = ui.column().classes('gap-2 mt-2')
     result_area = ui.column().classes('gap-4')
     quantity_input = ui.number(label='Request quantity').classes('mb-2')
     request_status = ui.label('')
-
-
     selected_component = {"name": None}  # To keep track of the last matched component
 
-    def search():
-        result_area.clear()
-        request_status.text = ''
-        name = component_input.value.strip().lower()
-        found = False
-        for c in component_data:
-            if name in c['name'].lower():
-                found = True
-                selected_component['name'] = c['name']
-                with result_area:
-                    with ui.card().classes("p-4 w-full shadow-md"):
-                        ui.label(f"📦 Name: {c['name']}").classes("text-lg font-bold")
-                        ui.label(f"🔢 Quantity: {c['quantity']}")
-                        ui.label(f"📍 Location: {c['location']}")
-                        ui.label(f"📂 Category: {c['category']} > {c['subcategory']}")
-        if not found:
-            result_area.clear()
-            result_area.append(ui.label("❌ Component not found."))
-            selected_component['name'] = None
+    async def update_components(e):
+        selected_subcategory = e.value
+        selected_category = category_dropdown.value
+
+        if not selected_category or not selected_subcategory:
+            component_dropdown.options = []
+            component_dropdown.update()
+            return
+
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.get("http://localhost:8000/api/get_components", params={
+                    "category": selected_category,
+                    "subcategory": selected_subcategory
+                })
+                if response.status_code == 200:
+                    data = response.json()
+
+                    # Group by component name (ignore cabinet for now)
+                    component_names = sorted(set(item['name'] for item in data))
+                    component_dropdown.options = component_names
+                    component_dropdown.update()
+
+                    # Save full component list for later display
+                    component_dropdown.metadata = data  # attach raw data
+                    print("✅ Components loaded:", component_names)
+                else:
+                    component_dropdown.options = []
+                    component_dropdown.update()
+                    ui.notify("⚠️ Failed to load components")
+        except Exception as e:
+            print("Error fetching components:", e)
+            ui.notify("❌ Backend connection error")
+
+
+     # 🔍 Show details of selected component (multiple cabinets)
+    def show_component_info(e):
+        selected_name = e.value
+        selected_component['name'] = selected_name
+        matches = [c for c in component_dropdown.metadata if c['name'] == selected_name]
+
+        component_info.clear()
+        if not matches:
+            component_info.append(ui.label("❌ No info found"))
+            return
+
+        with component_info:
+            for c in matches:
+                with ui.card().classes("p-4 shadow-md"):
+                    ui.label(f"📦 {c['name']}").classes("text-lg font-bold")
+                    ui.label(f"📍 Cabinet: {c['cabinet']}")
+                    ui.label(f"📌 Location: {c['location']}")
+                    ui.label(f"🔢 Quantity: {c['quantity']}")
 
     async def request_quantity():
         name = selected_component['name']
@@ -135,8 +175,6 @@ def dashboard_screen(user_id: str):
             if c['name'] == name:
                 if req_qty <= c['quantity']:
                     request_status.text = f'✅ {req_qty} of "{name}" requested successfully.'
-                    # You could emit JSON here for backend interaction
-
                     # 👉 Send this request to the backend
                     payload = {
                         "user": user_name,
@@ -161,7 +199,8 @@ def dashboard_screen(user_id: str):
                 return
         request_status.text = '❌ Please search and select a valid component first.'
 
-    ui.button('🔍 Search', on_click=search).classes('mb-2')
+
+    component_dropdown.on('change', show_component_info)
     ui.button('📤 Request', on_click=request_quantity).classes('mb-4')
 
 # ------------------ Routing ------------------

@@ -27,6 +27,25 @@ async def get_categories():
 
 
 
+@app.get("/api/get_components")
+async def get_components(category: str, subcategory: str):
+    # Replace with your real DB logic
+    return [
+        {
+            "name": "Resistor_10k",
+            "quantity": 120,
+            "location": "A1",
+            "cabinet": "Cabinet_1"
+        },
+        {
+            "name": "Resistor_10k",
+            "quantity": 20,
+            "location": "B4",
+            "cabinet": "Cabinet_2"
+        }
+    ]
+
+
 @app.post("/api/request")
 async def handle_request(request: Request):
     data = await request.json()
