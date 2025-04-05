@@ -1,0 +1,22 @@
+{ 
+    "components": [
+      {
+        "name": "Resistor_10k",
+        "category": "Passive",
+        "subcategory": "Resistors",
+        "cabinet_id":"0x01",
+        "quantity": 120,
+        "location": "A1"
+        
+      },
+      {
+        "name": "Capacitor_100uF",
+        "category": "Passive",
+        "subcategory": "Capacitors",
+        "cabinet_id":"0x01",
+        "quantity": 45,
+        "location": "B3"
+
+      }
+    ]
+  }
