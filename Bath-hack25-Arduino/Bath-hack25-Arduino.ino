@@ -11,6 +11,7 @@ const int ledPins[NUM_DRAWERS] = {2, 3, 4, 5};
 const int hallPins[NUM_DRAWERS] = {A0, A1, A2, A3};
 
 String drawerNames[NUM_DRAWERS] = {"A0", "A1", "B0", "B1"};
+String authorizedRFID = "7770F3A0";  // Only this RFID is authorized
 
 unsigned long openTime[NUM_DRAWERS] = {0};
 unsigned long lastBlink[NUM_DRAWERS] = {0};
@@ -18,8 +19,8 @@ bool isDrawerOpen[NUM_DRAWERS] = {false};
 bool alertSent[NUM_DRAWERS] = {false};
 bool ledState[NUM_DRAWERS] = {false};
 
-const unsigned long TIMEOUT = 30000;  // 2 minutes
-const unsigned long BLINK_INTERVAL = 500;     // LED blink speed in ms
+const unsigned long TIMEOUT = 30000;  // 30 seconds timeout (adjust as needed)
+const unsigned long BLINK_INTERVAL = 500;  // LED blink speed in ms
 
 String lastRFID = "";
 
@@ -43,7 +44,7 @@ void loop() {
   monitorDrawers();
 }
 
-// Declare the getDrawerIndex function
+// Returns the index of the drawer name or -1 if not found.
 int getDrawerIndex(String name) {
   for (int i = 0; i < NUM_DRAWERS; i++) {
     if (drawerNames[i] == name) {
@@ -62,11 +63,16 @@ void checkRFID() {
     }
     rfid.toUpperCase();
 
-    if (rfid != lastRFID) {
+    if (rfid == authorizedRFID) {  // Only allow access for this RFID
       Serial.print("RFID:");
       Serial.println(rfid);
       lastRFID = rfid;
-      requestComponent();  // Ask for the drawer after RFID scan
+      Serial.println("Authorized RFID detected. Proceed with drawer selection.");
+    } else {
+      Serial.print("RFID:");
+      Serial.println(rfid);
+      Serial.println("Unauthorized RFID detected. Access denied.");
+      lastRFID = "";  // Reset lastRFID if unauthorized
     }
     delay(1000);
   }
@@ -87,6 +93,9 @@ void handleDrawerCommands() {
         lastBlink[index] = millis();
         isDrawerOpen[index] = true;
         alertSent[index] = false;
+      } else {
+        Serial.print("Invalid drawer: ");
+        Serial.println(drawerName);
       }
     }
   }
@@ -102,7 +111,7 @@ void monitorDrawers() {
         digitalWrite(ledPins[i], LOW);
         Serial.print("CLOSED:");
         Serial.println(drawerNames[i]);
-        Serial.println("Drawer Closed");  // Display message when drawer is closed
+        Serial.println("Drawer Closed");
         alertSent[i] = false;
         ledState[i] = false;
         delay(1000);  // Small delay to ensure it's fully closed before restarting
@@ -115,7 +124,6 @@ void monitorDrawers() {
           alertSent[i] = true;
         }
 
-        // If alert has been sent, start blinking LED
         if (alertSent[i]) {
           if (millis() - lastBlink[i] >= BLINK_INTERVAL) {
             ledState[i] = !ledState[i];
@@ -129,6 +137,5 @@ void monitorDrawers() {
 }
 
 void requestComponent() {
-  // This part would be triggered after an RFID scan, ask for drawer input
   Serial.println("Enter drawer to access (A0, A1, B0, etc.) or 'logout': ");
 }
