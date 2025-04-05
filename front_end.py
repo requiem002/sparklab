@@ -17,7 +17,7 @@ with open(json_path, 'r') as file:
 
 # Simulated user login database
 users = {
-    "abc123": "Alice",
+    "sa2879": "Saad",
     "xyz789": "Bob",
     "test001": "Charlie"
 }
@@ -61,7 +61,7 @@ def dashboard_screen(user_id: str):
     ###########################
     async def search_by_serial():
         
-        serial = serial_input.value.strip()
+        serial = serial_input.value.strip() 
 
         print(f"Serial: {serial}")
         if not serial:
@@ -193,7 +193,6 @@ def dashboard_screen(user_id: str):
                     ui.notify("⚠️ Failed to load components")
         except Exception as e:
             print("Error fetching components:", e)
-            #ui.notify("❌ Backend connection error")
 
 
      # 🔍 Show details of selected component (multiple cabinets)
@@ -216,6 +215,10 @@ def dashboard_screen(user_id: str):
                     ui.label(f"📌 Location: {c['location']}")
                     ui.label(f"🔢 Quantity: {c['quantity']}")
 
+
+    ##########################################################
+
+
     async def request_quantity():
         name = selected_component['name']
         try:
@@ -223,34 +226,44 @@ def dashboard_screen(user_id: str):
         except ValueError:
             request_status.text = "❌ Please enter a valid number."
             return
+        
 
-        for c in component_data:
-            if c['name'] == name:
-                if req_qty <= c['quantity']:
-                    request_status.text = f'✅ {req_qty} of "{name}" requested successfully.'
-                    # 👉 Send this request to the backend
-                    payload = {
-                        "serial_id": user_name,
-                        "component": name,
-                        "quantity": req_qty
-                    }
+        # Find the selected component in metadata
+        matching_components = [
+            c for c in component_dropdown.metadata if c["name"] == name
+        ]
 
-                    try:
-                        async with httpx.AsyncClient() as client:
-                            response = await client.post("http://localhost:8000/api/request", json=payload)
-                            if response.status_code == 200:
-                                request_status.text += " (✅ Backend notified)"
-                            else:
-                                request_status.text += " (⚠️ Backend error)"
-                    except Exception as e:
-                        request_status.text += f" (❌ Failed to notify backend: {e})"
-                        print(e)
+        if not matching_components:
+            request_status.text = '❌ Please search and select a valid component first.'
+            return
+        # 🔥 Pick the first matching serial (or expand if needed)
+        selected_serial = matching_components[0]["serialID"]
 
 
-                else:
-                    request_status.text = '❌ Not enough stock available.'
-                return
-        request_status.text = '❌ Please search and select a valid component first.'
+        if req_qty <= matching_components[0]["quantity"]:
+            request_status.text = f'✅ {req_qty} of "{name}" requested successfully.'
+
+            payload = {
+                "user": user_name,
+                "serial": selected_serial,  # ✅ fixed
+                "quantity": req_qty
+            }
+
+            try:
+                async with httpx.AsyncClient() as client:
+                    response = await client.post("http://localhost:8000/api/request", json=payload)
+                    if response.status_code == 200:
+                        request_status.text += " (✅ Backend notified)"
+                    else:
+                        request_status.text += " (⚠️ Backend error)"
+            except Exception as e:
+                request_status.text += f" (❌ Failed to notify backend: {e})"
+                print(e)
+
+
+        else:
+            request_status.text = '❌ Not enough stock available.'
+    
 
 
 
