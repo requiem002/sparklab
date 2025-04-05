@@ -58,6 +58,7 @@ def dashboard_screen(user_id: str):
     component_dropdown = ui.select([], label='Select Component', on_change= lambda e: show_component_info(e))
     component_dropdown.classes('mb-2')
 
+    ###########################
     async def search_by_serial():
         
         serial = serial_input.value.strip()
@@ -94,6 +95,8 @@ def dashboard_screen(user_id: str):
             print("Error in serial search:", e)
             ui.notify(f"❌ Error: {e}")
     
+    #################################
+    #Fetch a list of relevant subcategories for given category!
     async def update_subcategories(e):
         selected_category = e.value
         print("Category selected:", e.value)
@@ -104,37 +107,48 @@ def dashboard_screen(user_id: str):
 
         try:
             async with httpx.AsyncClient() as client:
-                response = await client.get("http://localhost:8000/api/fetch_subcats", params={"category": selected_category})
+                response = await client.get("http://localhost:8000/api/fetch_subcats/", params={"category": selected_category})
+
+                print(f"Response: {response}")
                 if response.status_code == 200:
-                    subcategories = response.json()
-                    subcategory_dropdown.options = subcategories
+                    data = response.json()
+
+                    subcategory_list = [item["subcategory"] for item in data["subcategories"]]
+                    subcategory_dropdown.options = subcategory_list
                     subcategory_dropdown.update()
-                    print(f"Subcategories for {selected_category}:", subcategories)
+                    #print(f"Subcategories for {selected_category}:", subcategory_list)
                 else:
                     subcategory_dropdown.options = []
                     subcategory_dropdown.update()
-                    ui.notify("⚠️ Failed to load subcategories")
+                    print("⚠️ Failed to load subcategories")
+
         except Exception as e:
             print("Error fetching subcategories:", e)
-            ui.notify("❌ Backend connection error")
 
 
-
+    #fetch list of available categories
     async def fetch_categories():
         try:
             async with httpx.AsyncClient() as client:
                 response = await client.get("http://localhost:8000/api/fetch_cats")
+                
                 if response.status_code == 200:
-                    categories = response.json()
+                    data_raw = response.json()
+
+                    if isinstance(data_raw, str):
+                        data = json.loads(data_raw)  # <-- This fixes the double-encoded string
+                    else:
+                        data = data_raw
+
+                    categories = [entry["category"] for entry in data["categories"]]
                     category_dropdown.options = categories
                     category_dropdown.update()
 
                 else:
                     category_dropdown.options = []
-                    ui.notify("⚠️ Failed to load categories from backend")
         except Exception as e:
             print("Error fetching categories:", e)
-            ui.notify("❌ Backend connection error")
+            #ui.notify("❌ Backend connection error")
 
     ui.timer(0.1, fetch_categories, once=True)
     component_info = ui.column().classes('gap-2 mt-2')
@@ -143,6 +157,8 @@ def dashboard_screen(user_id: str):
     request_status = ui.label('')
     selected_component = {"name": None}  # To keep track of the last matched component
 
+
+    #get relevant components
     async def update_components(e):
         selected_subcategory = e.value
         selected_category = category_dropdown.value
@@ -154,20 +170,22 @@ def dashboard_screen(user_id: str):
 
         try:
             async with httpx.AsyncClient() as client:
-                response = await client.get("http://localhost:8000/api/get_components", params={
+                response = await client.get("http://localhost:8000/api/get_components/", params={
                     "category": selected_category,
                     "subcategory": selected_subcategory
                 })
                 if response.status_code == 200:
                     data = response.json()
 
+                    components = data["components"]                    
+                    component_names = sorted(set(item["name"] for item in components))
+
                     # Group by component name (ignore cabinet for now)
-                    component_names = sorted(set(item['name'] for item in data))
                     component_dropdown.options = component_names
                     component_dropdown.update()
 
                     # Save full component list for later display
-                    component_dropdown.metadata = data  # attach raw data
+                    component_dropdown.metadata = components  # attach raw data
                     print("✅ Components loaded:", component_names)
                 else:
                     component_dropdown.options = []
@@ -175,7 +193,7 @@ def dashboard_screen(user_id: str):
                     ui.notify("⚠️ Failed to load components")
         except Exception as e:
             print("Error fetching components:", e)
-            ui.notify("❌ Backend connection error")
+            #ui.notify("❌ Backend connection error")
 
 
      # 🔍 Show details of selected component (multiple cabinets)
@@ -194,7 +212,7 @@ def dashboard_screen(user_id: str):
             for c in matches:
                 with ui.card().classes("p-4 shadow-md"):
                     ui.label(f"📦 {c['name']}").classes("text-lg font-bold")
-                    ui.label(f"📍 Cabinet: {c['cabinet']}")
+                    ui.label(f"📍 Cabinet: {c['cabinet_ID']}")
                     ui.label(f"📌 Location: {c['location']}")
                     ui.label(f"🔢 Quantity: {c['quantity']}")
 
