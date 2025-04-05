@@ -212,7 +212,7 @@ def dashboard_screen(user_id: str):
                     request_status.text = f'✅ {req_qty} of "{name}" requested successfully.'
                     # 👉 Send this request to the backend
                     payload = {
-                        "user": user_name,
+                        "serial_id": user_name,
                         "component": name,
                         "quantity": req_qty
                     }
@@ -233,6 +233,7 @@ def dashboard_screen(user_id: str):
                     request_status.text = '❌ Not enough stock available.'
                 return
         request_status.text = '❌ Please search and select a valid component first.'
+
 
 
     ui.button('📤 Request', on_click=request_quantity).classes('mb-4')
