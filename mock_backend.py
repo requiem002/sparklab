@@ -25,7 +25,14 @@ async def get_subcategories(category: str = Query(...)):
 async def get_categories():
     return ["Passive", "Active", "Connectors"]
 
-
+@app.get("/api/component_by_serial")
+async def get_by_serial(serial: str):
+    # In real case: query DB
+    components = [
+        {"name": "Capacitor_100uF", "serial": "ABC123", "quantity": 40, "location": "A2", "cabinet": "Cabinet_1"},
+        {"name": "Resistor_10k", "serial": "XYZ789", "quantity": 20, "location": "C3", "cabinet": "Cabinet_2"},
+    ]
+    return [c for c in components if c['serial'] == serial] 
 
 @app.get("/api/get_components")
 async def get_components(category: str, subcategory: str):

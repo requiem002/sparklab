@@ -45,6 +45,9 @@ def dashboard_screen(user_id: str):
     user_name = users.get(user_id, "Unknown")
     ui.label(f'👋 Welcome, {user_name}').classes('text-xl mb-4')
 
+    serial_input = ui.input(label="Search by Serial Number").classes("mb-2")
+    ui.button("🔍 Search Serial", on_click=lambda: asyncio.create_task(search_by_serial())).classes("mb-4")
+
     #component_input = ui.input(label='Search for component', placeholder='e.g. Resistor_10k').classes('mb-2')
     category_dropdown = ui.select([], label='Select Category', on_change=lambda e: asyncio.create_task(update_subcategories(e)))
     category_dropdown.classes('mb-2')
@@ -55,11 +58,42 @@ def dashboard_screen(user_id: str):
     component_dropdown = ui.select([], label='Select Component', on_change= lambda e: show_component_info(e))
     component_dropdown.classes('mb-2')
 
-    
+    async def search_by_serial():
         
-    
-    
+        serial = serial_input.value.strip()
 
+        print(f"Serial: {serial}")
+        if not serial:
+            ui.notify("⚠️ Enter a serial number")
+            return
+
+        component_info.clear()
+        selected_component['name'] = None
+
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.get("http://localhost:8000/api/component_by_serial", params={"serial": serial})
+                if response.status_code == 200:
+                    data = response.json()
+                    if not data:
+                        with component_info:
+                            ui.label("❌ No component found with that serial number")
+                        return
+
+                    selected_component['name'] = data[0]['name']  # Save for requesting
+                    with component_info:
+                        for c in data:
+                            with ui.card().classes("p-4 shadow-md"):
+                                ui.label(f"📦 {c['name']} (Serial: {serial})").classes("text-lg font-bold")
+                                ui.label(f"📍 Cabinet: {c['cabinet']}")
+                                ui.label(f"📌 Location: {c['location']}")
+                                ui.label(f"🔢 Quantity: {c['quantity']}")
+                else:
+                    ui.notify("⚠️ Backend error during serial search")
+        except Exception as e:
+            print("Error in serial search:", e)
+            ui.notify(f"❌ Error: {e}")
+    
     async def update_subcategories(e):
         selected_category = e.value
         print("Category selected:", e.value)
@@ -146,6 +180,7 @@ def dashboard_screen(user_id: str):
 
      # 🔍 Show details of selected component (multiple cabinets)
     def show_component_info(e):
+        print(e)
         selected_name = e.value
         selected_component['name'] = selected_name
         matches = [c for c in component_dropdown.metadata if c['name'] == selected_name]
@@ -200,7 +235,6 @@ def dashboard_screen(user_id: str):
         request_status.text = '❌ Please search and select a valid component first.'
 
 
-    component_dropdown.on('change', show_component_info)
     ui.button('📤 Request', on_click=request_quantity).classes('mb-4')
 
 # ------------------ Routing ------------------
