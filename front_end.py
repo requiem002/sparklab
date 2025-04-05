@@ -235,6 +235,7 @@ def dashboard_screen(user_id: str):
         request_status.text = '❌ Please search and select a valid component first.'
 
 
+
     ui.button('📤 Request', on_click=request_quantity).classes('mb-4')
 
 # ------------------ Routing ------------------
