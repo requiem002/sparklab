@@ -1,7 +1,8 @@
-from nicegui import ui
+from nicegui import ui, app
 import json
 import os
 import httpx
+import asyncio
 
 
 # ------------------ Load Component Data from JSON ------------------
@@ -39,14 +40,66 @@ def login_screen():
 
 # ------------------ Dashboard ------------------
 
+
 def dashboard_screen(user_id: str):
     user_name = users.get(user_id, "Unknown")
     ui.label(f'👋 Welcome, {user_name}').classes('text-xl mb-4')
 
-    component_input = ui.input(label='Search for component', placeholder='e.g. Resistor_10k').classes('mb-2')
+    #component_input = ui.input(label='Search for component', placeholder='e.g. Resistor_10k').classes('mb-2')
+    category_dropdown = ui.select([], label='Select Category', on_change=lambda e: asyncio.create_task(update_subcategories(e)))
+    category_dropdown.classes('mb-2')
+    
+    subcategory_dropdown = ui.select([], label='Select Subcategory')
+    subcategory_dropdown.classes('mb-2')
+    
+    
+
+    async def update_subcategories(e):
+        selected_category = e.value
+        print("Category selected:", e.value)
+        if not selected_category:
+            subcategory_dropdown.options = []
+            subcategory_dropdown.update()
+            return
+
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.get("http://localhost:8000/api/fetch_subcats", params={"category": selected_category})
+                if response.status_code == 200:
+                    subcategories = response.json()
+                    subcategory_dropdown.options = subcategories
+                    subcategory_dropdown.update()
+                    print(f"Subcategories for {selected_category}:", subcategories)
+                else:
+                    subcategory_dropdown.options = []
+                    subcategory_dropdown.update()
+                    ui.notify("⚠️ Failed to load subcategories")
+        except Exception as e:
+            print("Error fetching subcategories:", e)
+            ui.notify("❌ Backend connection error")
+
+
+
+    async def fetch_categories():
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.get("http://localhost:8000/api/fetch_cats")
+                if response.status_code == 200:
+                    categories = response.json()
+                    category_dropdown.options = categories
+                    category_dropdown.update()
+
+                else:
+                    category_dropdown.options = []
+                    ui.notify("⚠️ Failed to load categories from backend")
+        except Exception as e:
+            print("Error fetching categories:", e)
+            ui.notify("❌ Backend connection error")
+    ui.timer(0.1, fetch_categories, once=True)
     result_area = ui.column().classes('gap-4')
     quantity_input = ui.number(label='Request quantity').classes('mb-2')
     request_status = ui.label('')
+
 
     selected_component = {"name": None}  # To keep track of the last matched component
 
@@ -120,6 +173,8 @@ def main_page():
 @ui.page('/dashboard/{user_id}')
 def dashboard(user_id: str):
     dashboard_screen(user_id)
+
+
 
 # ------------------ Run the App ------------------
 

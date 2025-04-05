@@ -18,5 +18,30 @@
         "location": "B3"
 
       }
+      ,
+      {
+        "name": "Resistor_10k",
+        "category": "Passive",
+        "subcategory": "Resistors",
+        "cabinet_id": "0x1A",
+        "quantity": 120,
+        "location": "A1"
+      },
+      {
+        "name": "Capacitor_100uF",
+        "category": "Passive",
+        "subcategory": "Capacitors",
+        "cabinet_id": "0x2B",
+        "quantity": 45,
+        "location": "B3"
+      },
+      {
+        "name": "Capacitor_100uF",
+        "category": "Active",
+        "subcategory": "Capacitors",
+        "cabinet_id": "0x1A",
+        "quantity": 10,
+        "location": "C2"
+      }
     ]
   }
