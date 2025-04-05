@@ -33,7 +33,7 @@ async def get_categories():
         print(f"An unexpected error occurred: {e}")
         raise HTTPException(status_code=500, detail="An internal server error occurred")
 
-@app.get("/api/fetch_subcats")
+@app.get("/api/fetch_subcats/")
 async def get_subcategories(category: str):
     """
     Fetches subcategories based on the provided category.
@@ -47,7 +47,7 @@ async def get_subcategories(category: str):
         raise HTTPException(status_code=500, detail="An internal server error occurred")
     return json_response
 
-@app.get("/api/search_cats")
+@app.get("/api/search_cats/")
 async def search_cats(category: str):
     """
     Fetches components based on the provided category and subcategory.
@@ -67,6 +67,19 @@ async def search_subcats(category: str, subcategory: str):
     """
     try:
         db_response = db.search_component_by_category_and_sub_category(category, subcategory)
+        json_response = convert_db_response_to_json(db_response) 
+    except Exception as e:
+        print(f"An error occurred while fetching components: {e}")
+        raise HTTPException(status_code=500, detail="An internal server error occurred")
+    return json_response
+
+@app.get("/api/search_id")
+async def search_id(serialID: str):
+    """
+    Fetches components based on the provided serial ID.
+    """
+    try:
+        db_response = db.search_componet_by_serialID(serialID)
         json_response = convert_db_response_to_json(db_response) 
     except Exception as e:
         print(f"An error occurred while fetching components: {e}")
