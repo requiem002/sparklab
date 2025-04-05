@@ -212,7 +212,7 @@ def dashboard_screen(user_id: str):
                     request_status.text = f'✅ {req_qty} of "{name}" requested successfully.'
                     # 👉 Send this request to the backend
                     payload = {
-                        "user": user_name,
+                        "serial_id": user_name,
                         "component": name,
                         "quantity": req_qty
                     }
