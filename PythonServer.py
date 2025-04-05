@@ -32,18 +32,20 @@ def main():
     while True:
         msg = read_serial()
         if msg:
+            # Process RFID scans only if no one is currently logged in.
             if msg.startswith("RFID:"):
-                current_user = msg.split(":")[1]
-                print(f"\n🪪  User logged in: {current_user}")
-                print("RFID scan processed")  # Debugging message
+                if current_user is None:
+                    current_user = msg.split(":")[1]
+                    print(f"\n🪪  User logged in: {current_user}")
+                    print("RFID scan processed")  # Debugging message
 
-                # Only allow access if the RFID matches the authorized one
-                if current_user == authorized_rfid:
-                    print("RFID is authorized.")
-                    request_component()
-                else:
-                    print("❌ Access Denied. Unauthorized RFID.")
-                    current_user = None  # Reset user if not authorized
+                    # Only allow access if the RFID matches the authorized one.
+                    if current_user == authorized_rfid:
+                        print("RFID is authorized.")
+                        request_component()
+                    else:
+                        print("❌ Access Denied. Unauthorized RFID.")
+                        current_user = None  # Reset user if not authorized
 
             elif msg.startswith("CLOSED:"):
                 drawer = msg.split(":")[1]
@@ -62,15 +64,12 @@ def request_component():
         print("🔓 User logged out.\n")
         current_user = None
         print("Waiting for new RFID scan...\n")
-
     else:
-        
         while not is_valid_drawer(drawer):
             print("❌ Drawer does not exist. Please enter a valid drawer name.")
             drawer = input("Enter drawer to access (A0, A1, B0, B1) or 'logout': ").strip().upper()
         send_drawer_command(drawer)
         print(f"🔦 Sent drawer command for: {drawer}")
-
 
 if __name__ == "__main__":
     try:
