@@ -7,6 +7,8 @@ from fastapi.responses import JSONResponse
 from Database import Database # Import the Database class from your Database module
 from JsonPacker import * # Import the JSON conversion function if needed
 
+from SerialHandler import ArduinoCommunicator # Import the Arduino communicator class
+
 # Create a FastAPI application instance
 app = FastAPI()
 db = Database("example.db") # Initialize the database connection
@@ -14,6 +16,7 @@ db.create_table() # Create the table if it doesn't exist
 if db.isTableEmpty(): # Check if the table is empty
     db.fill_random_electronic(10)  # Fill the table with 10 random electronic components
 
+serial_handler = ArduinoCommunicator(serial_port='COM15', baud_rate=9600) # Initialize the Arduino communicator
 
 @app.get("/api/fetch_cats")
 async def get_categories():
@@ -133,7 +136,8 @@ async def handle_request(request: Request):
         elif searchIDResult[0][7] < quantity or searchIDResult[0][7] <= 0:
             raise ValueError("Insufficient quantity in the database")
         db.subtract_quantity(serial, quantity)  # Update the database with the new quantity
-        # update arduino drawer
+        serial_handler.turn_on_led("1")
+        
         return {"status": "ok"}
     except ValidationError as e:
         print(f"Validation error: {e}")
