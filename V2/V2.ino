@@ -1,4 +1,8 @@
 #include <MFRC522.h>
+#include <MFRC522Extended.h>
+#include <require_cpp11.h>
+
+#include <MFRC522.h>
 #include <SPI.h>
 
 #define SS_PIN 10
@@ -11,14 +15,25 @@ MFRC522 mfrc522(SS_PIN, RST_PIN);
 
 const int ledPins[NUM_DRAWERS] = {2, 3, 4, 5};
 const int hallPins[NUM_DRAWERS] = {A0, A1, A2, A3};
-
-const uint8_t drawerLocations[NUM_DRAWERS] = {
-  0b00000000, // Drawer 1
-  0b00000001, // Drawer 2
-  0b00010000, // Drawer 3
-  0b00010001, // Drawer 4
+struct cmdMemory {
+  uint8_t prevDrawerLocation = false;
+  bool checkDrawer = false;
+  bool turnOffLEDFlag = false;
 };
 
+
+const uint8_t drawerLocations[NUM_DRAWERS] = {
+  // 0b00000000, // Drawer 1
+  // 0b00000001, // Drawer 2
+  // 0b00010000, // Drawer 3
+  // 0b00010001, // Drawer 4
+  0b00000001, // Drawer 1
+  0b00000010, // Drawer 2
+  0b00000011, // Drawer 3
+  0b00000100, // Drawer 4
+};
+
+cmdMemory cmdMem;
 
 void setup() {
   // put your setup code here, to run once:
@@ -30,12 +45,17 @@ void setup() {
     pinMode(hallPins[i], INPUT_PULLUP);
     digitalWrite(ledPins[i], LOW); // Initialize LEDs to off
   }
+  
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
   checkRFID();
-}
+  Serial.println("AAAAA");
+  cmdMem =  commandHandler();
+  Serial.println("BBBB");
+  drawerHandler();
+  }
 
 
 bool turnOnLED(uint8_t drawerLocation) {
@@ -60,7 +80,7 @@ bool turnOffLED(uint8_t drawerLocation) {
   return false;
 }
 
-bool isDrawerPresent(uint8_t drawerLocation) {
+bool isDrawerOpen(uint8_t drawerLocation) {
   // Check if the drawer is present using the hall effect sensor
   for (int i = 0; i < NUM_DRAWERS; i++) {
     if (drawerLocations[i] == drawerLocation) {
@@ -86,30 +106,54 @@ void checkRFID() {
   }
 }
 
-void commandHandler(){
+cmdMemory commandHandler(){
   if(Serial.available()){
     String command = Serial.readStringUntil('\n');
     if(command.startsWith("LED")){
       uint8_t drawerLocation = command.substring(3).toInt();
-      if(isDrawerPresent(drawerLocation)){
+      if(!isDrawerOpen(drawerLocation)){
         turnOnLED(drawerLocation);
-        Serial.printf("LED,%d turned on",drawerLocation);
-      } else {
-        Serial.printf("LED,%d not present",drawerLocation);
+        cmdMem.prevDrawerLocation = drawerLocation; 
+        cmdMem.checkDrawer = true;
+        
+        Serial.print("LED,");
+        Serial.print(drawerLocation);
+        Serial.println(" turned on");
+      } else { 
+        cmdMem.prevDrawerLocation = drawerLocation; 
+        cmdMem.turnOffLEDFlag = true;
+        
+        Serial.print("LED, ");
+        Serial.print(drawerLocation);
+        Serial.println(" not turned on. Drawer Already opened");
       }
     }
     else {
       Serial.println("Invalid command");
     }
   }
+  return cmdMem;
 }
 
 void drawerHandler(){
-  for (int i = 0; i < NUM_DRAWERS; i++) {
-    if (isDrawerPresent(drawerLocations[i])) {
-      turnOnLED(drawerLocations[i]);
-    } else {
-      turnOffLED(drawerLocations[i]);
+  // Check if the drawer LED needs to be reset after drawer selection
+  if (cmdMem.checkDrawer) {
+    // Check if the drawer is open using the hall effect sensor
+    if (isDrawerOpen(cmdMem.prevDrawerLocation)) {
+      cmdMem.turnOffLEDFlag = true;
+      Serial.print("Drawer, ");
+      Serial.print(cmdMem.prevDrawerLocation);
+      Serial.println(" not turned on. Drawer Already opened ");
+    } else if(!isDrawerOpen(cmdMem.prevDrawerLocation) && cmdMem.turnOffLEDFlag) {
+      turnOffLED(cmdMem.prevDrawerLocation);
+      cmdMem.turnOffLEDFlag = false;
+      cmdMem.checkDrawer = false;
+ 
+      Serial.print("Drawer, ");
+      Serial.print(cmdMem.prevDrawerLocation);
+      Serial.println(" closed");
+      
+      
     }
-  }
+  } 
 }
