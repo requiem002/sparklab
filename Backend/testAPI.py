@@ -36,8 +36,8 @@ async def test_api():
         async with httpx.AsyncClient() as client:
             response = await client.get(url)
             if response.status_code == 200:
-                # print("API request successful:", json.loads(response.json()).get("subcategory"))
-                if json.loads(response.json()).get("subcategory") is None:
+                # print("API request successful:",response.json().get("subcategories"), len(response.json().get("subcategories")))
+                if response.json().get("subcategory") is None:
                     print("Completed API request - fetch_subcats(invalid category)")
                 pass
             else:
@@ -63,8 +63,8 @@ async def test_api():
         async with httpx.AsyncClient() as client:
             response = await client.get(url)
             if response.status_code == 200:
-                # print("API request successful:", response.json(),"\n\n",json.loads(response.json()).get("components")[0].get("name"))
-                if len(json.loads(response.json()).get("components")) == 0:
+                # print("API request successful:", response.json().get("components"), len(response.json().get("components")))
+                if len(response.json().get("components")) == 0:
                     print("Completed API request - search_cats(invalid category)")
                 pass
             else:
@@ -91,7 +91,7 @@ async def test_api():
             response = await client.get(url)
             if response.status_code == 200:
                 # print("API request successful:", response.json())
-                if len(json.loads(response.json()).get("components")) == 0:
+                if len(response.json().get("components")) == 0:
                     print("Completed API request - get_components (invalid subcategory)")
                 pass
             else:
