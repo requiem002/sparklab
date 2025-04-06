@@ -8,6 +8,7 @@ from sqlite3 import Error
 from pydantic import BaseModel, ValidationError
 import os
 import json
+import random
 
 class Database:
     def __init__(self, db_file):
@@ -46,14 +47,19 @@ class Database:
         categories = ["Resistor", "Capacitor", "Inductor", "Diode", "Transistor"]
         sub_categories = ["Passive", "Active"]
         for i in range(quantity):
-            name = f"Component_{i}"
-            serialID = f"SERIAL_{i}"
             category = categories[i % len(categories)]
+            tempVal = random.randint(1, 1000)
+            value = f"Value_{tempVal}"
+            name = f"{category}_{tempVal}"
+            hex_chars = "0123456789abcdef"
+            random_hex = ''.join(random.choice(hex_chars) for _ in range(4))
+            serialID = f"{random_hex}"
             sub_category = sub_categories[i % len(sub_categories)]
             cabinet_id = f"CABINET_{i // 10}"
-            location = f"Location_{i}"
+            shelf_width="ABCD"
+            random_loc = random.choice(shelf_width) + str(random.randint(1, 10))
+            location = f"{random_loc}"
             quantity =  i
-            value = f"Value_{i}"
             self.execute_query(query, (name, serialID, category, sub_category, cabinet_id, location, quantity, value))
             print(f"Inserted {name} into the database.")
             
