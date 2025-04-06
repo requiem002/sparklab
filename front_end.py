@@ -1,4 +1,4 @@
-from nicegui import ui, app
+from nicegui import ui, app, context
 import json
 import os
 import httpx
@@ -16,62 +16,84 @@ with open(json_path, 'r') as file:
 # Simulated user login database
 users = {
     "sa2879": "Saad",
-    "xyz789": "Bob",
-    "test001": "Charlie"
+    "il356": "Ian",
+    "dms60": "Dylan",
+    "oa562": "Toni"
 }
 
 # ------------------ Login Screen ------------------
 
 def login_screen():
-    ui.label('🔐 Login to Component System').classes('text-2xl mb-4')
-    id_input = ui.input(label='Enter User ID').classes('mb-2')
-    status = ui.label('')
-    def login():
-        user_id = id_input.value.strip()
-        if user_id in users:
-            ui.navigate.to(f'/dashboard/{user_id}')
-        else:
-            status.text = '❌ Invalid User ID'
-    ui.button('Login', on_click=login)
+    ui.query('body').classes('m-0 p-0 bg-gray-900 text-white h-screen overflow-hidden')
+
+    with ui.row().classes('w-full h-screen items-center justify-center'):
+        with ui.card().classes('bg-gray-800 p-10 rounded-2xl shadow-2xl w-[600px] max-w-full text-center'):
+            ui.image('backend/logo.png').classes('mx-auto mb-4 w-40')
+            ui.label('🔐 SparkLab Login').classes('text-2xl font-bold text-cyan-400 mb-4')
+
+            id_input = ui.input(label='Enter your ID').props('dark dense').classes('w-full text-black mb-4')
+            status = ui.label('').classes('text-red-400 text-sm')
+
+            def login():
+                user_id = id_input.value.strip()
+                if user_id in users:
+                    ui.navigate.to(f'/dashboard/{user_id}')
+                else:
+                    status.text = '❌ Invalid User ID'
+
+            ui.button('Login', on_click=login).props('color=primary').classes('w-full')
 
 # ------------------ Dashboard ------------------
 
 def dashboard_screen(user_id: str):
     user_name = users.get(user_id, "Unknown")
     selected_component = {"name": None}
-    ui.query('body').classes('bg-gray-900 text-white')  # Dark mode styling
+    ui.query('body').classes('m-0 p-0 bg-gray-900 text-white h-screen overflow-hidden')
 
-    # ------------------ Header ------------------
-    with ui.row().classes("w-full justify-between items-center p-4 bg-gradient-to-r from-blue-700 to-indigo-800 shadow-lg"):
-        ui.label("🧰 Component Control Dashboard").classes("text-2xl font-bold text-white")
-        ui.label(f"👋 Welcome, {user_name}").classes("text-md text-gray-200")
+    with ui.row().classes("w-screen h-[100vh] items-center justify-center overflow-hidden no-wrap"):
 
-    with ui.grid(columns=2).classes("gap-6 p-6"):
+        with ui.card().classes("bg-gray-800 p-6 rounded-2xl shadow-xl w-full max-w-4xl max-h-full"):
+            ui.label(f"👋 Welcome, {user_name}, to your SparkLab Dashboard").classes("text-3xl font-bold text-white mb-4")
 
-        # Serial Search
-        with ui.card().classes("bg-gray-800 p-6 shadow-xl rounded-xl"):
-            ui.label("🔎 Serial Search").classes("text-xl font-semibold text-blue-300 mb-3")
-            serial_input = ui.input(label="Serial Number").classes("w-full text-black mb-2")
-            ui.button("Search", on_click=lambda: asyncio.create_task(search_by_serial())).props("color=primary")
+            with ui.grid(columns=2).classes("gap-6 w-full max-h-full"):
+                # Serial Search Card
 
-        # Category Filters
-        with ui.card().classes("bg-gray-800 p-6 shadow-xl rounded-xl"):
-            ui.label("🧠 Smart Filter").classes("text-xl font-semibold text-purple-300 mb-3")
-            category_dropdown = ui.select([], label="Category", on_change=lambda e: asyncio.create_task(update_subcategories(e))).classes("w-full text-black mb-2")
-            subcategory_dropdown = ui.select([], label="Subcategory", on_change=lambda e: asyncio.create_task(update_components(e))).classes("w-full text-black mb-2")
-            component_dropdown = ui.select([], label="Component", on_change=lambda e: show_component_info(e)).classes("w-full text-black")
+                ##### The Search Bars
+                with ui.card().classes("bg-gray-700 p-4 rounded-xl shadow-lg w-full"):
+                    ui.label("🔍 Serial ID Search").classes("text-xl font-semibold text-blue-300 mb-2")
+                    serial_input = ui.input(label="Serial Number").classes("w-full text-black mb-2")
+                    ui.button("Search", on_click=lambda: asyncio.create_task(search_by_serial())).props("color=primary")
 
-    # Component Info Section
-    ui.label("📦 Component Info").classes("text-2xl text-green-400 px-6 mt-4")
-    component_info = ui.column().classes("gap-4 px-6")
+                # Component Filter Card
+                with ui.card().classes("bg-gray-700 p-6 rounded-xl shadow-lg max-h-full w-full"):
+                    ui.label("📂 Category Search").classes("text-xl font-semibold text-purple-300 mb-3")
+                    category_dropdown = ui.select([], label="Category", on_change=lambda e: asyncio.create_task(update_subcategories(e)))
+                    category_dropdown.props("dark").classes("w-full text-black mb-3")
 
-    # Request Section
-    with ui.card().classes("bg-gray-800 p-6 shadow-xl rounded-xl m-6 max-w-3xl mx-auto"):
-        ui.label("📤 Request Component").classes("text-xl font-semibold text-yellow-300 mb-3")
-        with ui.row().classes("gap-4"):
-            quantity_input = ui.number(label="Quantity").classes("w-full text-black")
-            ui.button("Request", on_click=lambda: asyncio.create_task(request_quantity())).props("color=accent")
-        request_status = ui.label("").classes("mt-2 text-gray-300")
+                    subcategory_dropdown = ui.select([], label="Subcategory", on_change=lambda e: asyncio.create_task(update_components(e)))
+                    subcategory_dropdown.props("dark").classes("w-full text-black mb-3")
+
+                    component_dropdown = ui.select([], label="Component", on_change=lambda e: show_component_info(e)).classes("w-full text-black")
+                    component_dropdown.props("dark")
+
+                ui.separator()
+
+            # Side-by-side row for Component Info and Request
+            with ui.row().classes("w-full gap-6 justify-center"):
+                # Component Info (2/3 width)
+                with ui.card().classes("bg-gray-700 p-4 rounded-xl shadow-lg w-2/3"):
+                    ui.label("🧾 Component Information").classes("text-xl font-semibold text-green-300 mb-2")
+                    with ui.scroll_area().classes("max-h-60 overflow-y-auto"):
+                        component_info = ui.column().classes("gap-4")
+
+            with ui.row().classes("w-full gap-6 justify-center"):
+                # Request (1/3 width)
+                with ui.card().classes("bg-gray-700 p-4 rounded-xl shadow-lg w-2/3"):
+                    ui.label("📦 Request Component").classes("text-xl font-semibold text-yellow-300 mb-3 ")
+                    quantity_input = ui.number(label="Quantity").classes("w-full text-black mb-2")
+                    ui.button("Request", on_click=lambda: asyncio.create_task(request_quantity())).props("color=accent")
+                    request_status = ui.label("").classes("mt-2 text-gray-300")
+
 
     # ------------------- Async Functions ------------------
 
@@ -82,28 +104,36 @@ def dashboard_screen(user_id: str):
             return
         component_info.clear()
         selected_component['name'] = None
+
         try:
             async with httpx.AsyncClient() as client:
-                response = await client.get("http://localhost:8000/api/component_by_serial", params={"serial": serial})
+                response = await client.get("http://localhost:8000/api/component_by_serial/", params={"serial": serial})
                 if response.status_code == 200:
-                    data = response.json()
-                    if not data:
+                    raw = response.json()
+                    data = json.loads(raw) if isinstance(raw, str) else raw
+
+                    print("Serial search data:", data)
+
+                    components = data.get("components", [])
+
+                    if not components:
                         with component_info:
                             ui.label("❌ No component found with that serial number")
                         return
-                    selected_component['name'] = data[0]['name']
+
+                    selected_component['name'] = components[0]['name']
+
                     with component_info:
-                        for c in data:
-                            with ui.card().classes("p-4 shadow-md"):
+                        for c in components:
+                            with ui.card().classes("bg-gray-600 p-4 shadow-md text-white rounded-lg"):
                                 ui.label(f"📦 {c['name']} (Serial: {serial})").classes("text-lg font-bold")
-                                ui.label(f"📍 Cabinet: {c['cabinet']}")
+                                ui.label(f"📍 Cabinet: {c['cabinet_ID']}")
                                 ui.label(f"📌 Location: {c['location']}")
                                 ui.label(f"🔢 Quantity: {c['quantity']}")
                 else:
                     ui.notify("⚠️ Backend error during serial search")
         except Exception as e:
             print("Error in serial search:", e)
-            ui.notify(f"❌ Error: {e}")
 
     async def update_subcategories(e):
         selected_category = e.value
@@ -171,7 +201,7 @@ def dashboard_screen(user_id: str):
             return
         with component_info:
             for c in matches:
-                with ui.card().classes("p-4 shadow-md"):
+                with ui.card().classes("bg-gray-600 p-4 shadow-md text-white rounded-lg w-full h-full justify-center"):
                     ui.label(f"📦 {c['name']}").classes("text-lg font-bold")
                     ui.label(f"📍 Cabinet: {c['cabinet_ID']}")
                     ui.label(f"📌 Location: {c['location']}")
